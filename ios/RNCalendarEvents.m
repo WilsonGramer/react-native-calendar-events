@@ -95,11 +95,11 @@ RCT_EXPORT_MODULE()
 - (BOOL)isCalendarAccessGranted {
     EKAuthorizationStatus status = [EKEventStore authorizationStatusForEntityType:EKEntityTypeEvent];
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
-    return (status == EKAuthorizationStatusFullAccess || status == EKAuthorizationStatusAuthorized);
-#else
-    return status == EKAuthorizationStatusAuthorized;
-#endif
+    if (@available(iOS 17, *)) {
+        return (status == EKAuthorizationStatusFullAccess || status == EKAuthorizationStatusAuthorized);
+    } else {
+        return status == EKAuthorizationStatusAuthorized;
+    }
 }
 
 #pragma mark -
@@ -783,7 +783,7 @@ RCT_EXPORT_METHOD(checkPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCT
     NSString *status;
     EKAuthorizationStatus authStatus = [EKEventStore authorizationStatusForEntityType:EKEntityTypeEvent];
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
+    if (@available(iOS 17, *)) {
         switch (authStatus) {
             case EKAuthorizationStatusDenied:
                 status = @"denied";
@@ -801,7 +801,7 @@ RCT_EXPORT_METHOD(checkPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCT
                 status = @"undetermined";
                 break;
         }
-#else
+    } else {
         switch (authStatus) {
             case EKAuthorizationStatusDenied:
                 status = @"denied";
@@ -816,14 +816,14 @@ RCT_EXPORT_METHOD(checkPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCT
                 status = @"undetermined";
                 break;
         }
-#endif
+    }
 
     resolve(status);
 }
 
 RCT_EXPORT_METHOD(requestPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
+    if (@available(iOS 17, *)) {
         [self.eventStore requestFullAccessToEventsWithCompletion:^(BOOL granted, NSError *error) {
             NSString *status = granted ? @"authorized" : @"denied";
             if (!error) {
@@ -832,7 +832,7 @@ RCT_EXPORT_METHOD(requestPermissions:(RCTPromiseResolveBlock)resolve rejecter:(R
                 reject(@"error", @"authorization request error", error);
             }
         }];
-#else
+    } else {
         [self.eventStore requestAccessToEntityType:EKEntityTypeEvent completion:^(BOOL granted, NSError *error) {
             NSString *status = granted ? @"authorized" : @"denied";
             if (!error) {
@@ -841,7 +841,7 @@ RCT_EXPORT_METHOD(requestPermissions:(RCTPromiseResolveBlock)resolve rejecter:(R
                 reject(@"error", @"authorization request error", error);
             }
         }];
-#endif
+    }
 }
 
 RCT_EXPORT_METHOD(findCalendars:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
