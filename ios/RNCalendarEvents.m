@@ -92,11 +92,14 @@ RCT_EXPORT_MODULE()
     return NO;
 }
 
-- (BOOL)isCalendarAccessGranted
-{
+- (BOOL)isCalendarAccessGranted {
     EKAuthorizationStatus status = [EKEventStore authorizationStatusForEntityType:EKEntityTypeEvent];
 
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
+    return (status == EKAuthorizationStatusFullAccess || status == EKAuthorizationStatusAuthorized);
+#else
     return status == EKAuthorizationStatusAuthorized;
+#endif
 }
 
 #pragma mark -
@@ -734,7 +737,6 @@ RCT_EXPORT_MODULE()
                 NSTextCheckingResult *match = [regex firstMatchInString:rule.description options:0 range:NSMakeRange(0, [rule.description length])];
                 if (match != nil) {
                     NSString *rrule = [rule.description substringWithRange:[match rangeAtIndex:1]];
-                    NSLog(@"Extracted RRule:  %@", rrule);
                     [recurrenceRule setValue:rrule forKey:@"rrule"];
                 }
             }
@@ -781,34 +783,65 @@ RCT_EXPORT_METHOD(checkPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCT
     NSString *status;
     EKAuthorizationStatus authStatus = [EKEventStore authorizationStatusForEntityType:EKEntityTypeEvent];
 
-    switch (authStatus) {
-        case EKAuthorizationStatusDenied:
-            status = @"denied";
-            break;
-        case EKAuthorizationStatusRestricted:
-            status = @"restricted";
-            break;
-        case EKAuthorizationStatusAuthorized:
-            status = @"authorized";
-            break;
-        default:
-            status = @"undetermined";
-            break;
-    }
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
+        switch (authStatus) {
+            case EKAuthorizationStatusDenied:
+                status = @"denied";
+                break;
+            case EKAuthorizationStatusRestricted:
+                status = @"restricted";
+                break;
+            case EKAuthorizationStatusFullAccess:
+                status = @"authorized";
+                break;
+            case EKAuthorizationStatusWriteOnly:
+                status = @"writeOnly";
+                break;
+            default:
+                status = @"undetermined";
+                break;
+        }
+#else
+        switch (authStatus) {
+            case EKAuthorizationStatusDenied:
+                status = @"denied";
+                break;
+            case EKAuthorizationStatusRestricted:
+                status = @"restricted";
+                break;
+            case EKAuthorizationStatusAuthorized:
+                status = @"authorized";
+                break;
+            default:
+                status = @"undetermined";
+                break;
+        }
+#endif
 
     resolve(status);
 }
 
 RCT_EXPORT_METHOD(requestPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-    [self.eventStore requestAccessToEntityType:EKEntityTypeEvent completion:^(BOOL granted, NSError *error) {
-        NSString *status = granted ? @"authorized" : @"denied";
-        if (!error) {
-            resolve(status);
-        } else {
-            reject(@"error", @"authorization request error", error);
-        }
-    }];
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
+        [self.eventStore requestFullAccessToEventsWithCompletion:^(BOOL granted, NSError *error) {
+            NSString *status = granted ? @"authorized" : @"denied";
+            if (!error) {
+                resolve(status);
+            } else {
+                reject(@"error", @"authorization request error", error);
+            }
+        }];
+#else
+        [self.eventStore requestAccessToEntityType:EKEntityTypeEvent completion:^(BOOL granted, NSError *error) {
+            NSString *status = granted ? @"authorized" : @"denied";
+            if (!error) {
+                resolve(status);
+            } else {
+                reject(@"error", @"authorization request error", error);
+            }
+        }];
+#endif
 }
 
 RCT_EXPORT_METHOD(findCalendars:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
