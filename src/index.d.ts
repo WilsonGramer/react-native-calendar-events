@@ -170,17 +170,20 @@ export type CalendarAccountSourceAndroid =
       isLocalAccount: boolean;
     };
 
+
+export type AccessLevel = 'fullAccess' | 'readOnly' | 'writeOnly';
+
 export default class ReactNativeCalendarEvents {
   /**
    * Get calendar authorization status.
-   * @param readOnly - optional, default false, use true to check for calendar read-only vs calendar read/write. Android-specific, iOS is always read/write
+   * @param accessLevel - optional, default `fullAccess`
    */
-  static checkPermissions(readOnly?: boolean): Promise<AuthorizationStatus>;
+  static checkPermissions(accessLevel?: AccessLevel): Promise<AuthorizationStatus>;
   /**
    * Request calendar authorization. Authorization must be granted before accessing calendar events.
-   * @param readOnly - optional, default false, use true to request for calendar read-only vs calendar read/write. Android-specific, iOS is always read/write
+   * @param accessLevel - optional, default `fullAccess`
    */
-  static requestPermissions(readOnly?: boolean): Promise<AuthorizationStatus>;
+  static requestPermissions(accessLevel?: AccessLevel): Promise<AuthorizationStatus>;
 
   /** Finds all the calendars on the device. */
   static findCalendars(): Promise<Calendar[]>;

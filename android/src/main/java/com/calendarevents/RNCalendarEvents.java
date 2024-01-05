@@ -59,7 +59,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
     }
 
     //region Calendar Permissions
-    private void requestCalendarPermission(boolean readOnly, final Promise promise)
+    private void requestCalendarPermission(String accessLevel, final Promise promise)
     {
         Activity currentActivity = getCurrentActivity();
         if (currentActivity == null) {
@@ -74,8 +74,10 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
         PERMISSION_REQUEST_CODE++;
         permissionsPromises.put(PERMISSION_REQUEST_CODE, promise);
         String[] permissions = new String[]{Manifest.permission.WRITE_CALENDAR, Manifest.permission.READ_CALENDAR};
-        if (readOnly == true) {
+        if (accessLevel.equals("readOnly")) {
             permissions = new String[]{Manifest.permission.READ_CALENDAR};
+        } else if (accessLevel.equals("writeOnly")) {
+            permissions = new String[]{Manifest.permission.WRITE_CALENDAR};
         }
         activity.requestPermissions(permissions, PERMISSION_REQUEST_CODE, this);
     }
@@ -100,19 +102,19 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
         return permissionsPromises.size() == 0;
     }
 
-    private boolean haveCalendarPermissions(boolean readOnly) {
+    private boolean haveCalendarPermissions(String accessLevel) {
         int writePermission = ContextCompat.checkSelfPermission(reactContext, Manifest.permission.WRITE_CALENDAR);
         int readPermission = ContextCompat.checkSelfPermission(reactContext, Manifest.permission.READ_CALENDAR);
 
-        if (readOnly) {
+        if (accessLevel.equals("readOnly")) {
             return readPermission == PackageManager.PERMISSION_GRANTED;
         }
 
         return writePermission == PackageManager.PERMISSION_GRANTED &&
                 readPermission == PackageManager.PERMISSION_GRANTED;
     }
-    
-    private boolean shouldShowRequestPermissionRationale(boolean readOnly) {
+
+    private boolean shouldShowRequestPermissionRationale(String accessLevel) {
         Activity currentActivity = getCurrentActivity();
 
         if (currentActivity == null) {
@@ -126,9 +128,10 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
 
         PermissionAwareActivity activity = (PermissionAwareActivity)currentActivity;
 
-        if (readOnly) {
+        if (accessLevel.equals("readOnly")) {
             return activity.shouldShowRequestPermissionRationale(Manifest.permission.READ_CALENDAR);
         }
+
         return activity.shouldShowRequestPermissionRationale(Manifest.permission.WRITE_CALENDAR);
     }
 
@@ -814,7 +817,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
         Cursor cursor = CalendarContract.Attendees.query(resolver, eventID, new String[] {
                 CalendarContract.Attendees._ID
         });
-        
+
         while (cursor.moveToNext()) {
             long attendeeId = cursor.getLong(0);
             Uri attendeeUri = ContentUris.withAppendedId(CalendarContract.Attendees.CONTENT_URI, attendeeId);
@@ -1211,26 +1214,28 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
     }
     // endregion
 
-    private String getPermissionKey(boolean readOnly) {
+    private String getPermissionKey(String accessLevel) {
         String permissionKey = "permissionRequested"; // default to previous key for read/write, backwards-compatible
-        if (readOnly) {
+        if (accessLevel.equals("readOnly")) {
             permissionKey = "permissionRequestedRead"; // new key for read-only permission requests
+        } else if (accessLevel.equals("writeOnly")) {
+            permissionKey = "permissionRequestedWrite"; // new key for write-only permission requests
         }
         return permissionKey;
     }
 
     //region React Native Methods
     @ReactMethod
-    public void checkPermissions(boolean readOnly, Promise promise) {
+    public void checkPermissions(String accessLevel, Promise promise) {
         try {
             SharedPreferences sharedPreferences = reactContext.getSharedPreferences(RNC_PREFS, ReactContext.MODE_PRIVATE);
-            boolean permissionRequested = sharedPreferences.getBoolean(getPermissionKey(readOnly), false);
+            boolean permissionRequested = sharedPreferences.getBoolean(getPermissionKey(accessLevel), false);
 
-            if (this.haveCalendarPermissions(readOnly)) {
+            if (this.haveCalendarPermissions(accessLevel)) {
                 promise.resolve("authorized");
             } else if (!permissionRequested) {
                 promise.resolve("undetermined");
-            } else if (this.shouldShowRequestPermissionRationale(readOnly)) {
+            } else if (this.shouldShowRequestPermissionRationale(accessLevel)) {
                 promise.resolve("denied");
             } else {
                 promise.resolve("restricted");
@@ -1243,17 +1248,17 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
     }
 
     @ReactMethod
-    public void requestPermissions(boolean readOnly, Promise promise) {
+    public void requestPermissions(String accessLevel, Promise promise) {
         try {
             SharedPreferences sharedPreferences = reactContext.getSharedPreferences(RNC_PREFS, ReactContext.MODE_PRIVATE);
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean(getPermissionKey(readOnly), true);
+            editor.putBoolean(getPermissionKey(accessLevel), true);
             editor.apply();
 
-            if (this.haveCalendarPermissions(readOnly)) {
+            if (this.haveCalendarPermissions(accessLevel)) {
                 promise.resolve("authorized");
             } else {
-                this.requestCalendarPermission(readOnly, promise);
+                this.requestCalendarPermission(accessLevel, promise);
             }
         }
         catch(Throwable t) {

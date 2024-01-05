@@ -230,12 +230,12 @@ RCT_EXPORT_MODULE()
         NSDictionary *geo = [locationOptions valueForKey:@"coords"];
         CLLocation *geoLocation = [[CLLocation alloc] initWithLatitude:[[geo valueForKey:@"latitude"] doubleValue]
                                                              longitude:[[geo valueForKey:@"longitude"] doubleValue]];
-        
+
         calendarEvent.structuredLocation = [EKStructuredLocation locationWithTitle:[locationOptions valueForKey:@"title"]];
         calendarEvent.structuredLocation.geoLocation = geoLocation;
         calendarEvent.structuredLocation.radius = [[locationOptions valueForKey:@"radius"] doubleValue];
     }
-    
+
     return [self saveEvent:calendarEvent options:options];
 }
 
@@ -747,9 +747,9 @@ RCT_EXPORT_MODULE()
     @catch (NSException *exception) {
         NSLog(@"RNCalendarEvents encountered an issue while serializing event (recurrenceRules) '%@': %@", event.title, exception.reason);
     }
-    
+
     [formedCalendarEvent setValue:[self availabilityStringMatchingConstant:event.availability] forKey:_availability];
-    
+
     @try {
         if (event.structuredLocation && event.structuredLocation.radius) {
             NSMutableDictionary *structuredLocation = [[NSMutableDictionary alloc] initWithCapacity:3];
@@ -821,17 +821,28 @@ RCT_EXPORT_METHOD(checkPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCT
     resolve(status);
 }
 
-RCT_EXPORT_METHOD(requestPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(requestPermissions:(NSString)accessLevel resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
     if (@available(iOS 17, *)) {
-        [self.eventStore requestFullAccessToEventsWithCompletion:^(BOOL granted, NSError *error) {
-            NSString *status = granted ? @"authorized" : @"denied";
-            if (!error) {
-                resolve(status);
-            } else {
-                reject(@"error", @"authorization request error", error);
-            }
-        }];
+        if ([accessLevel equals:@"writeOnly"]) {
+            [self.eventStore requestWriteOnlyAccessToEventsWithCompletion:^(BOOL granted, NSError *error) {
+                NSString *status = granted ? @"authorized" : @"denied";
+                if (!error) {
+                    resolve(status);
+                } else {
+                    reject(@"error", @"authorization request error", error);
+                }
+            }];
+        } else {
+            [self.eventStore requestFullAccessToEventsWithCompletion:^(BOOL granted, NSError *error) {
+                NSString *status = granted ? @"authorized" : @"denied";
+                if (!error) {
+                    resolve(status);
+                } else {
+                    reject(@"error", @"authorization request error", error);
+                }
+            }];
+        }
     } else {
         [self.eventStore requestAccessToEntityType:EKEntityTypeEvent completion:^(BOOL granted, NSError *error) {
             NSString *status = granted ? @"authorized" : @"denied";
@@ -1062,12 +1073,12 @@ RCT_EXPORT_METHOD(saveEvent:(NSString *)title
         reject(@"error", @"unauthorized to access calendar", nil);
         return;
     }
-    
+
     __weak RNCalendarEvents *weakSelf = self;
     dispatch_async(serialQueue, ^{
     @try {
     RNCalendarEvents *strongSelf = weakSelf;
-    
+
     NSMutableDictionary *details = [NSMutableDictionary dictionaryWithDictionary:settings];
     [details setValue:title forKey:_title];
 
@@ -1091,12 +1102,12 @@ RCT_EXPORT_METHOD(removeEvent:(NSString *)eventId options:(NSDictionary *)option
         reject(@"error", @"unauthorized to access calendar", nil);
         return;
     }
-    
+
     __weak RNCalendarEvents *weakSelf = self;
     dispatch_async(serialQueue, ^{
     @try {
     RNCalendarEvents *strongSelf = weakSelf;
-    
+
     Boolean futureEvents = [RCTConvert BOOL:options[@"futureEvents"]];
     NSDate *exceptionDate = [RCTConvert NSDate:options[@"exceptionDate"]];
 
