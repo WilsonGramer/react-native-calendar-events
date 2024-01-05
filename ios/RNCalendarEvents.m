@@ -821,10 +821,10 @@ RCT_EXPORT_METHOD(checkPermissions:(RCTPromiseResolveBlock)resolve rejecter:(RCT
     resolve(status);
 }
 
-RCT_EXPORT_METHOD(requestPermissions:(NSString)accessLevel resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(requestPermissions:(NSString *)accessLevel resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
     if (@available(iOS 17, *)) {
-        if ([accessLevel equals:@"writeOnly"]) {
+        if ([accessLevel isEqualToString:@"writeOnly"]) {
             [self.eventStore requestWriteOnlyAccessToEventsWithCompletion:^(BOOL granted, NSError *error) {
                 NSString *status = granted ? @"authorized" : @"denied";
                 if (!error) {
