@@ -96,7 +96,7 @@ RCT_EXPORT_MODULE()
     EKAuthorizationStatus status = [EKEventStore authorizationStatusForEntityType:EKEntityTypeEvent];
 
     if (@available(iOS 17, *)) {
-        return (status == EKAuthorizationStatusFullAccess || status == EKAuthorizationStatusAuthorized);
+        return (status == EKAuthorizationStatusFullAccess || EKAuthorizationStatusWriteOnly || status == EKAuthorizationStatusAuthorized);
     } else {
         return status == EKAuthorizationStatusAuthorized;
     }

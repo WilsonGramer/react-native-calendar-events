@@ -108,6 +108,8 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
 
         if (accessLevel.equals("readOnly")) {
             return readPermission == PackageManager.PERMISSION_GRANTED;
+        } else if (accessLevel.equals("writeOnly")) {
+            return writePermission == PackageManager.PERMISSION_GRANTED;
         }
 
         return writePermission == PackageManager.PERMISSION_GRANTED &&
@@ -1269,7 +1271,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
 
     @ReactMethod
     public void findCalendars(final Promise promise) {
-        if (this.haveCalendarPermissions(true)) {
+        if (this.haveCalendarPermissions("readOnly")) {
             try {
                 Thread thread = new Thread(new Runnable(){
                     @Override
@@ -1295,7 +1297,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
 
     @ReactMethod
     public void saveCalendar(final ReadableMap options, final Promise promise) {
-        if (!this.haveCalendarPermissions(false)) {
+        if (!this.haveCalendarPermissions("fullAccess")) {
             promise.reject("save calendar error", "unauthorized to access calendar");
             return;
         }
@@ -1320,7 +1322,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
 
     @ReactMethod
     public void removeCalendar(final String CalendarID, final Promise promise) {
-        if (this.haveCalendarPermissions(false)) {
+        if (this.haveCalendarPermissions("writeOnly")) {
             try {
                 Thread thread = new Thread(new Runnable(){
                     @Override
@@ -1347,7 +1349,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
     }
     @ReactMethod
     public void saveEvent(final String title, final ReadableMap details, final ReadableMap options, final Promise promise) {
-        if (this.haveCalendarPermissions(false)) {
+        if (this.haveCalendarPermissions("writeOnly")) {
             try {
                 Thread thread = new Thread(new Runnable(){
                     @Override
@@ -1378,7 +1380,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
     @ReactMethod
     public void findAllEvents(final Dynamic startDate, final Dynamic endDate, final ReadableArray calendars, final Promise promise) {
 
-        if (this.haveCalendarPermissions(true)) {
+        if (this.haveCalendarPermissions("readOnly")) {
             try {
                 Thread thread = new Thread(new Runnable(){
                     @Override
@@ -1406,7 +1408,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
 
     @ReactMethod
     public void findById(final String eventID, final Promise promise) {
-        if (this.haveCalendarPermissions(true)) {
+        if (this.haveCalendarPermissions("readOnly")) {
             try {
                 Thread thread = new Thread(new Runnable(){
                     @Override
@@ -1434,7 +1436,7 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
 
     @ReactMethod
     public void removeEvent(final String eventID, final ReadableMap options, final Promise promise) {
-        if (this.haveCalendarPermissions(false)) {
+        if (this.haveCalendarPermissions("writeOnly")) {
             try {
                 Thread thread = new Thread(new Runnable(){
                     @Override
